@@ -1,3 +1,6 @@
+//// A trie-based HTTP router for Gleam on BEAM.
+//// One import, no sub-modules. See the [README](https://hexdocs.pm/radiant/) for examples.
+
 import exception
 import gleam/bit_array
 import gleam/dict.{type Dict}
