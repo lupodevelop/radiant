@@ -142,6 +142,45 @@ fn find_capture(
 }
 
 // ---------------------------------------------------------------------------
+// Capture ambiguity detection (build time)
+// ---------------------------------------------------------------------------
+
+/// Walk the tree along `segments` and return `Ok(existing_name)` if a capture
+/// with the same ParamType but a different name already exists at the same depth.
+/// Returns `Error(Nil)` when no conflict is found.
+pub fn check_capture_ambiguity(
+  node: Node(handler),
+  segments: List(ipath.Segment),
+) -> Result(String, Nil) {
+  case segments {
+    [] -> Error(Nil)
+    [first, ..rest] ->
+      case first {
+        ipath.Literal(s) ->
+          case dict.get(node.literals, s) {
+            Ok(child) -> check_capture_ambiguity(child, rest)
+            Error(_) -> Error(Nil)
+          }
+        ipath.Capture(name, ptype) ->
+          case
+            list.find(node.captures, fn(c) {
+              let #(cname, cptype, _) = c
+              cptype == ptype && cname != name
+            })
+          {
+            Ok(#(cname, _, _)) -> Ok(cname)
+            Error(_) ->
+              case find_capture(node.captures, name, ptype) {
+                Ok(child) -> check_capture_ambiguity(child, rest)
+                Error(_) -> Error(Nil)
+              }
+          }
+        ipath.Wildcard(_) -> Error(Nil)
+      }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Match (request time)
 // ---------------------------------------------------------------------------
 

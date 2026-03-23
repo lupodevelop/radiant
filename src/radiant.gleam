@@ -78,6 +78,7 @@ pub opaque type Param(a) {
     name: String,
     parse: fn(String) -> Result(a, Nil),
     ptype: ipath.ParamType,
+    to_string: fn(a) -> String,
   )
 }
 
@@ -94,7 +95,7 @@ pub opaque type Param(a) {
 /// })
 /// ```
 pub fn int(name: String) -> Param(Int) {
-  Param(name: name, parse: int.parse, ptype: ipath.IntT)
+  Param(name: name, parse: int.parse, ptype: ipath.IntT, to_string: int.to_string)
 }
 
 /// A `Param(String)` that matches any path segment.
@@ -106,7 +107,7 @@ pub fn int(name: String) -> Param(Int) {
 /// })
 /// ```
 pub fn str(name: String) -> Param(String) {
-  Param(name: name, parse: fn(s) { Ok(s) }, ptype: ipath.StringT)
+  Param(name: name, parse: fn(s) { Ok(s) }, ptype: ipath.StringT, to_string: fn(s) { s })
 }
 
 /// Create a typed context key. Pair with `set_context` and `get_context`
@@ -378,6 +379,204 @@ pub fn delete3(
   typed3(router, Delete, pattern, p1, p2, p3, handler)
 }
 
+/// Register a GET route with four typed path parameters.
+pub fn get4(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  handler: fn(Req, a, b, c, d) -> Response(BitArray),
+) -> Router {
+  typed4(router, Get, pattern, p1, p2, p3, p4, handler)
+}
+
+pub fn post4(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  handler: fn(Req, a, b, c, d) -> Response(BitArray),
+) -> Router {
+  typed4(router, Post, pattern, p1, p2, p3, p4, handler)
+}
+
+pub fn put4(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  handler: fn(Req, a, b, c, d) -> Response(BitArray),
+) -> Router {
+  typed4(router, Put, pattern, p1, p2, p3, p4, handler)
+}
+
+pub fn patch4(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  handler: fn(Req, a, b, c, d) -> Response(BitArray),
+) -> Router {
+  typed4(router, Patch, pattern, p1, p2, p3, p4, handler)
+}
+
+pub fn delete4(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  handler: fn(Req, a, b, c, d) -> Response(BitArray),
+) -> Router {
+  typed4(router, Delete, pattern, p1, p2, p3, p4, handler)
+}
+
+/// Register a GET route with five typed path parameters.
+pub fn get5(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  handler: fn(Req, a, b, c, d, e) -> Response(BitArray),
+) -> Router {
+  typed5(router, Get, pattern, p1, p2, p3, p4, p5, handler)
+}
+
+pub fn post5(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  handler: fn(Req, a, b, c, d, e) -> Response(BitArray),
+) -> Router {
+  typed5(router, Post, pattern, p1, p2, p3, p4, p5, handler)
+}
+
+pub fn put5(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  handler: fn(Req, a, b, c, d, e) -> Response(BitArray),
+) -> Router {
+  typed5(router, Put, pattern, p1, p2, p3, p4, p5, handler)
+}
+
+pub fn patch5(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  handler: fn(Req, a, b, c, d, e) -> Response(BitArray),
+) -> Router {
+  typed5(router, Patch, pattern, p1, p2, p3, p4, p5, handler)
+}
+
+pub fn delete5(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  handler: fn(Req, a, b, c, d, e) -> Response(BitArray),
+) -> Router {
+  typed5(router, Delete, pattern, p1, p2, p3, p4, p5, handler)
+}
+
+/// Register a GET route with six typed path parameters.
+pub fn get6(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  p6: Param(f),
+  handler: fn(Req, a, b, c, d, e, f) -> Response(BitArray),
+) -> Router {
+  typed6(router, Get, pattern, p1, p2, p3, p4, p5, p6, handler)
+}
+
+pub fn post6(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  p6: Param(f),
+  handler: fn(Req, a, b, c, d, e, f) -> Response(BitArray),
+) -> Router {
+  typed6(router, Post, pattern, p1, p2, p3, p4, p5, p6, handler)
+}
+
+pub fn put6(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  p6: Param(f),
+  handler: fn(Req, a, b, c, d, e, f) -> Response(BitArray),
+) -> Router {
+  typed6(router, Put, pattern, p1, p2, p3, p4, p5, p6, handler)
+}
+
+pub fn patch6(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  p6: Param(f),
+  handler: fn(Req, a, b, c, d, e, f) -> Response(BitArray),
+) -> Router {
+  typed6(router, Patch, pattern, p1, p2, p3, p4, p5, p6, handler)
+}
+
+pub fn delete6(
+  router: Router,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  p6: Param(f),
+  handler: fn(Req, a, b, c, d, e, f) -> Response(BitArray),
+) -> Router {
+  typed6(router, Delete, pattern, p1, p2, p3, p4, p5, p6, handler)
+}
+
 /// Group routes under a common path prefix.
 ///
 /// ```gleam
@@ -587,6 +786,123 @@ pub fn path_for(
   }
 }
 
+/// Build a URL path using typed `Param` objects — more refactor-safe than `path_for`.
+///
+/// Because you pass the same `Param` constant used for route registration,
+/// renaming a capture in the pattern and updating the `Param` name is enough:
+/// `validate_param` will catch any remaining mismatch at startup.
+///
+/// ```gleam
+/// pub const user_id = radiant.int("id")
+///
+/// // Route registration
+/// router |> radiant.get1("/users/<id:int>", user_id, handler)
+///
+/// // URL building — user_id.name is always in sync with the route
+/// radiant.path_for1("/users/<id:int>", user_id, 42)
+/// // → Ok("/users/42")
+/// ```
+pub fn path_for1(pattern: String, p1: Param(a), v1: a) -> Result(String, Nil) {
+  path_for(pattern, [#(p1.name, p1.to_string(v1))])
+}
+
+/// Build a URL path with two typed parameters.
+pub fn path_for2(
+  pattern: String,
+  p1: Param(a),
+  v1: a,
+  p2: Param(b),
+  v2: b,
+) -> Result(String, Nil) {
+  path_for(pattern, [#(p1.name, p1.to_string(v1)), #(p2.name, p2.to_string(v2))])
+}
+
+/// Build a URL path with three typed parameters.
+pub fn path_for3(
+  pattern: String,
+  p1: Param(a),
+  v1: a,
+  p2: Param(b),
+  v2: b,
+  p3: Param(c),
+  v3: c,
+) -> Result(String, Nil) {
+  path_for(pattern, [
+    #(p1.name, p1.to_string(v1)),
+    #(p2.name, p2.to_string(v2)),
+    #(p3.name, p3.to_string(v3)),
+  ])
+}
+
+/// Build a URL path with four typed parameters.
+pub fn path_for4(
+  pattern: String,
+  p1: Param(a),
+  v1: a,
+  p2: Param(b),
+  v2: b,
+  p3: Param(c),
+  v3: c,
+  p4: Param(d),
+  v4: d,
+) -> Result(String, Nil) {
+  path_for(pattern, [
+    #(p1.name, p1.to_string(v1)),
+    #(p2.name, p2.to_string(v2)),
+    #(p3.name, p3.to_string(v3)),
+    #(p4.name, p4.to_string(v4)),
+  ])
+}
+
+/// Build a URL path with five typed parameters.
+pub fn path_for5(
+  pattern: String,
+  p1: Param(a),
+  v1: a,
+  p2: Param(b),
+  v2: b,
+  p3: Param(c),
+  v3: c,
+  p4: Param(d),
+  v4: d,
+  p5: Param(e),
+  v5: e,
+) -> Result(String, Nil) {
+  path_for(pattern, [
+    #(p1.name, p1.to_string(v1)),
+    #(p2.name, p2.to_string(v2)),
+    #(p3.name, p3.to_string(v3)),
+    #(p4.name, p4.to_string(v4)),
+    #(p5.name, p5.to_string(v5)),
+  ])
+}
+
+/// Build a URL path with six typed parameters.
+pub fn path_for6(
+  pattern: String,
+  p1: Param(a),
+  v1: a,
+  p2: Param(b),
+  v2: b,
+  p3: Param(c),
+  v3: c,
+  p4: Param(d),
+  v4: d,
+  p5: Param(e),
+  v5: e,
+  p6: Param(f),
+  v6: f,
+) -> Result(String, Nil) {
+  path_for(pattern, [
+    #(p1.name, p1.to_string(v1)),
+    #(p2.name, p2.to_string(v2)),
+    #(p3.name, p3.to_string(v3)),
+    #(p4.name, p4.to_string(v4)),
+    #(p5.name, p5.to_string(v5)),
+    #(p6.name, p6.to_string(v6)),
+  ])
+}
+
 fn add_route(
   router: Router,
   method: Method,
@@ -602,6 +918,20 @@ fn add_route_raw(
   segments: List(ipath.Segment),
   handler: fn(Req) -> Response(BitArray),
 ) -> Router {
+  let _ = case tree.check_capture_ambiguity(router.tree, segments) {
+    Ok(existing) -> {
+      let pattern = segments_to_pattern(segments)
+      panic as {
+        "Radiant: Ambiguous capture in '"
+        <> pattern
+        <> "'. A capture named '"
+        <> existing
+        <> "' of the same type already exists at the same path depth. "
+        <> "Routing between them is order-dependent. Use distinct types or restructure your routes."
+      }
+    }
+    Error(_) -> Nil
+  }
   case tree.get_handler(router.tree, segments, method) {
     Ok(_) -> router
     Error(_) ->
@@ -710,6 +1040,111 @@ fn typed3(
     let assert Ok(v2) = dict.get(req.params, p2.name) |> result.try(p2.parse)
     let assert Ok(v3) = dict.get(req.params, p3.name) |> result.try(p3.parse)
     handler(req, v1, v2, v3)
+  }
+  add_route_raw(router, method, segments, wrapped)
+}
+
+fn typed4(
+  router: Router,
+  method: Method,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  handler: fn(Req, a, b, c, d) -> Response(BitArray),
+) -> Router {
+  let raw = ipath.parse(pattern)
+  validate_param(p1, raw, pattern)
+  validate_param(p2, raw, pattern)
+  validate_param(p3, raw, pattern)
+  validate_param(p4, raw, pattern)
+  let segments =
+    raw
+    |> apply_param_type(p1)
+    |> apply_param_type(p2)
+    |> apply_param_type(p3)
+    |> apply_param_type(p4)
+  let wrapped = fn(req: Req) -> Response(BitArray) {
+    let assert Ok(v1) = dict.get(req.params, p1.name) |> result.try(p1.parse)
+    let assert Ok(v2) = dict.get(req.params, p2.name) |> result.try(p2.parse)
+    let assert Ok(v3) = dict.get(req.params, p3.name) |> result.try(p3.parse)
+    let assert Ok(v4) = dict.get(req.params, p4.name) |> result.try(p4.parse)
+    handler(req, v1, v2, v3, v4)
+  }
+  add_route_raw(router, method, segments, wrapped)
+}
+
+fn typed5(
+  router: Router,
+  method: Method,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  handler: fn(Req, a, b, c, d, e) -> Response(BitArray),
+) -> Router {
+  let raw = ipath.parse(pattern)
+  validate_param(p1, raw, pattern)
+  validate_param(p2, raw, pattern)
+  validate_param(p3, raw, pattern)
+  validate_param(p4, raw, pattern)
+  validate_param(p5, raw, pattern)
+  let segments =
+    raw
+    |> apply_param_type(p1)
+    |> apply_param_type(p2)
+    |> apply_param_type(p3)
+    |> apply_param_type(p4)
+    |> apply_param_type(p5)
+  let wrapped = fn(req: Req) -> Response(BitArray) {
+    let assert Ok(v1) = dict.get(req.params, p1.name) |> result.try(p1.parse)
+    let assert Ok(v2) = dict.get(req.params, p2.name) |> result.try(p2.parse)
+    let assert Ok(v3) = dict.get(req.params, p3.name) |> result.try(p3.parse)
+    let assert Ok(v4) = dict.get(req.params, p4.name) |> result.try(p4.parse)
+    let assert Ok(v5) = dict.get(req.params, p5.name) |> result.try(p5.parse)
+    handler(req, v1, v2, v3, v4, v5)
+  }
+  add_route_raw(router, method, segments, wrapped)
+}
+
+fn typed6(
+  router: Router,
+  method: Method,
+  pattern: String,
+  p1: Param(a),
+  p2: Param(b),
+  p3: Param(c),
+  p4: Param(d),
+  p5: Param(e),
+  p6: Param(f),
+  handler: fn(Req, a, b, c, d, e, f) -> Response(BitArray),
+) -> Router {
+  let raw = ipath.parse(pattern)
+  validate_param(p1, raw, pattern)
+  validate_param(p2, raw, pattern)
+  validate_param(p3, raw, pattern)
+  validate_param(p4, raw, pattern)
+  validate_param(p5, raw, pattern)
+  validate_param(p6, raw, pattern)
+  let segments =
+    raw
+    |> apply_param_type(p1)
+    |> apply_param_type(p2)
+    |> apply_param_type(p3)
+    |> apply_param_type(p4)
+    |> apply_param_type(p5)
+    |> apply_param_type(p6)
+  let wrapped = fn(req: Req) -> Response(BitArray) {
+    let assert Ok(v1) = dict.get(req.params, p1.name) |> result.try(p1.parse)
+    let assert Ok(v2) = dict.get(req.params, p2.name) |> result.try(p2.parse)
+    let assert Ok(v3) = dict.get(req.params, p3.name) |> result.try(p3.parse)
+    let assert Ok(v4) = dict.get(req.params, p4.name) |> result.try(p4.parse)
+    let assert Ok(v5) = dict.get(req.params, p5.name) |> result.try(p5.parse)
+    let assert Ok(v6) = dict.get(req.params, p6.name) |> result.try(p6.parse)
+    handler(req, v1, v2, v3, v4, v5, v6)
   }
   add_route_raw(router, method, segments, wrapped)
 }

@@ -1,5 +1,5 @@
 name = "radiant"
-version = "1.0.0"
+version = "1.1.0"
 target = "erlang"
 description = "A focused, type-safe HTTP router for Gleam on BEAM — declarative routing, typed path params, middleware, wildcards, reverse routing, and testing helpers."
 licences = ["MIT"]
