@@ -9,17 +9,14 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [1.1.0] — 2026-03-23
 
-### Added
-
 - `get4`, `post4`, `put4`, `patch4`, `delete4` — typed route with four path parameters. Handler: `fn(Req, a, b, c, d) -> Response`.
 - `get5`, `post5`, `put5`, `patch5`, `delete5` — typed route with five path parameters.
 - `get6`, `post6`, `put6`, `patch6`, `delete6` — typed route with six path parameters.
 - `path_for1`–`path_for6` — typed URL builders. Accept the same `Param` constants used for route registration instead of raw `(String, String)` pairs, making capture renames detectable at startup via `validate_param`.
-- Capture ambiguity detection: `add_route_raw` now panics at startup (not at request time) if two captures of the same type are registered at the same path depth under the same prefix, making order-dependent routing impossible to introduce silently.
-
-### Changed
-
-- `Param(a)` now carries a `to_string: fn(a) -> String` field (internal, opaque — no public API change). Used by `path_for1`–`path_for6`.
+- Capture ambiguity detection: `add_route_raw` panics at startup if two captures of the same type are registered at the same path depth under the same prefix, making order-dependent routing impossible to introduce silently.
+- Wildcard position check: `ipath.parse` panics at startup if a wildcard (`*name`) appears before the last segment (e.g. `/files/*rest/download`). Segments after a wildcard are structurally unreachable.
+- Duplicate capture name check: `ipath.parse` panics at startup if two captures or wildcards in the same pattern share the same name (e.g. `/users/<id:int>/posts/<id:int>`). Duplicate names cause silent dict overwrites in `req.params` at request time.
+- Internal: `Param(a)` now carries a `to_string: fn(a) -> String` field (opaque — no public API change). Used by `path_for1`–`path_for6`.
 
 ---
 
