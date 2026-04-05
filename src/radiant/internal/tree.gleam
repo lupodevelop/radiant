@@ -37,7 +37,11 @@ pub fn insert(
           let child = dict.get(node.literals, s) |> unwrap_or_new
           Node(
             ..node,
-            literals: dict.insert(node.literals, s, insert(child, method, rest, handler)),
+            literals: dict.insert(
+              node.literals,
+              s,
+              insert(child, method, rest, handler),
+            ),
           )
         }
         ipath.Capture(name, ptype) -> {
@@ -52,7 +56,10 @@ pub fn insert(
             Some(#(_, n)) -> n
             None -> new()
           }
-          Node(..node, wildcard: Some(#(name, insert(child, method, rest, handler))))
+          Node(
+            ..node,
+            wildcard: Some(#(name, insert(child, method, rest, handler))),
+          )
         }
       }
   }
@@ -137,6 +144,45 @@ fn find_capture(
       case n == name && p == ptype {
         True -> Ok(child)
         False -> find_capture(rest, name, ptype)
+      }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Capture ambiguity detection (build time)
+// ---------------------------------------------------------------------------
+
+/// Walk the tree along `segments` and return `Ok(existing_name)` if a capture
+/// with the same ParamType but a different name already exists at the same depth.
+/// Returns `Error(Nil)` when no conflict is found.
+pub fn check_capture_ambiguity(
+  node: Node(handler),
+  segments: List(ipath.Segment),
+) -> Result(String, Nil) {
+  case segments {
+    [] -> Error(Nil)
+    [first, ..rest] ->
+      case first {
+        ipath.Literal(s) ->
+          case dict.get(node.literals, s) {
+            Ok(child) -> check_capture_ambiguity(child, rest)
+            Error(_) -> Error(Nil)
+          }
+        ipath.Capture(name, ptype) ->
+          case
+            list.find(node.captures, fn(c) {
+              let #(cname, cptype, _) = c
+              cptype == ptype && cname != name
+            })
+          {
+            Ok(#(cname, _, _)) -> Ok(cname)
+            Error(_) ->
+              case find_capture(node.captures, name, ptype) {
+                Ok(child) -> check_capture_ambiguity(child, rest)
+                Error(_) -> Error(Nil)
+              }
+          }
+        ipath.Wildcard(_) -> Error(Nil)
       }
   }
 }
@@ -248,8 +294,7 @@ pub fn allowed_methods(
 
 fn do_allowed(node: Node(handler), segments: List(String)) -> List(Method) {
   case segments {
-    [] ->
-      list.append(dict.keys(node.handlers), wildcard_methods(node.wildcard))
+    [] -> list.append(dict.keys(node.handlers), wildcard_methods(node.wildcard))
     [seg, ..rest] -> {
       let lit = case dict.get(node.literals, seg) {
         Ok(child) -> do_allowed(child, rest)

@@ -60,6 +60,9 @@ Everything is a single import: `import radiant`.
 | `radiant.get1`, `post1`, `...` | Typed route — 1 path parameter delivered to the handler |
 | `radiant.get2`, `post2`, `...` | Typed route — 2 path parameters delivered to the handler |
 | `radiant.get3`, `post3`, `...` | Typed route — 3 path parameters delivered to the handler |
+| `radiant.get4`, `post4`, `...` | Typed route — 4 path parameters delivered to the handler |
+| `radiant.get5`, `post5`, `...` | Typed route — 5 path parameters delivered to the handler |
+| `radiant.get6`, `post6`, `...` | Typed route — 6 path parameters delivered to the handler |
 | `radiant.scope(r, prefix, fn)` | Group routes under a prefix |
 | `radiant.mount(r, prefix, sub)` | Attach a pre-built sub-router to a prefix |
 | `radiant.middleware(r, mw)` | Apply a middleware to the router |
@@ -136,7 +139,7 @@ router |> radiant.middleware(radiant.serve_static("/assets", "public", fs))
 
 ## Typed Routes
 
-`get1` / `get2` / `get3` (and their `post`, `put`, `patch`, `delete` variants) let you
+`get1` through `get6` (and their `post`, `put`, `patch`, `delete` variants) let you
 declare `Param(a)` objects and receive parsed, typed values directly in the handler —
 no `assert`, no string parsing in user code.
 
@@ -224,6 +227,32 @@ pub fn handle_request(req: wisp.Request) -> wisp.Response {
 
 If you don't need Wisp's middleware, use **Mist + radiant** directly.
 
+## Context key namespacing
+
+`radiant.key("user")` creates a `Key(a)` that is backed by the string `"user"`. If two
+middlewares both call `key("user")` but expect different types, they silently overwrite
+each other in the context dict and produce wrong values at runtime.
+
+**Best practice:** always use a fully-qualified name that includes your module or library
+prefix:
+
+```gleam
+// Instead of:
+pub const user_key = radiant.key("user")
+
+// Prefer:
+pub const user_key = radiant.key("auth_middleware:user")
+pub const session_key = radiant.key("session_middleware:session")
+```
+
+This is especially important when mixing third-party middleware libraries.
+
+## Trailing slashes
+
+Radiant filters empty segments when splitting paths, so `/users` and `/users/` are
+routed to the **same handler** by default. No configuration needed — this behaviour
+is intentional and zero-cost.
+
 ## Reverse routing
 
 Build URLs from patterns — no string concatenation, no broken links:
@@ -239,6 +268,24 @@ radiant.path_for("/users/<uid:int>/posts/<pid:int>", [
 
 radiant.path_for("/users/<id:int>", [])
 // → Error(Nil)  ← missing param caught at runtime
+```
+
+### Typed reverse routing (`path_for1`–`path_for6`)
+
+When you share the same `Param` constant between route registration and URL building,
+renaming a capture is safe: `validate_param` panics at startup if the constant's name
+no longer matches the pattern, so inconsistencies are caught immediately.
+
+```gleam
+pub const user_id = radiant.int("id")
+pub const post_id = radiant.int("pid")
+
+// Route
+router |> radiant.get2("/users/<id:int>/posts/<pid:int>", user_id, post_id, handler)
+
+// URL — no raw strings, no silent Error(Nil) from typos
+radiant.path_for2("/users/<id:int>/posts/<pid:int>", user_id, 42, post_id, 7)
+// → Ok("/users/42/posts/7")
 ```
 
 Use the same pattern string for both routing and URL generation:
@@ -281,7 +328,7 @@ Priority is **structural**, not based on registration order. `/users/admin` alwa
 matches before `/users/<id:int>`, even if the capture was registered first.
 `<id:int>` always matches before `<name:string>` for integer segments.
 
-Use `get1`/`get2`/`get3` with `radiant.int("id")` to receive the value already
+Use `get1`/`get2`/`get3` (up to `get6`) with `radiant.int("id")` to receive the value already
 parsed — no `int_param` call needed in the handler.
 
 ## Non-goals

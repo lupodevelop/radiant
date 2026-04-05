@@ -53,12 +53,17 @@ fn demo_router() -> radiant.Router {
   radiant.new()
   // ── Middleware ───────────────────────────────────────────────────────────
   |> radiant.middleware(radiant.cors(radiant.default_cors()))
-  |> radiant.middleware(radiant.rescue(fn(_err) {
-    radiant.internal_server_error()
-  }))
+  |> radiant.middleware(
+    radiant.rescue(fn(_err) { radiant.internal_server_error() }),
+  )
   |> radiant.middleware(fn(next) {
     fn(req) {
-      woof.info(http.method_to_string(radiant.method(req)) <> " " <> radiant.req_path(req), [])
+      woof.info(
+        http.method_to_string(radiant.method(req))
+          <> " "
+          <> radiant.req_path(req),
+        [],
+      )
       next(req)
     }
   })
