@@ -37,7 +37,11 @@ pub fn insert(
           let child = dict.get(node.literals, s) |> unwrap_or_new
           Node(
             ..node,
-            literals: dict.insert(node.literals, s, insert(child, method, rest, handler)),
+            literals: dict.insert(
+              node.literals,
+              s,
+              insert(child, method, rest, handler),
+            ),
           )
         }
         ipath.Capture(name, ptype) -> {
@@ -52,7 +56,10 @@ pub fn insert(
             Some(#(_, n)) -> n
             None -> new()
           }
-          Node(..node, wildcard: Some(#(name, insert(child, method, rest, handler))))
+          Node(
+            ..node,
+            wildcard: Some(#(name, insert(child, method, rest, handler))),
+          )
         }
       }
   }
@@ -287,8 +294,7 @@ pub fn allowed_methods(
 
 fn do_allowed(node: Node(handler), segments: List(String)) -> List(Method) {
   case segments {
-    [] ->
-      list.append(dict.keys(node.handlers), wildcard_methods(node.wildcard))
+    [] -> list.append(dict.keys(node.handlers), wildcard_methods(node.wildcard))
     [seg, ..rest] -> {
       let lit = case dict.get(node.literals, seg) {
         Ok(child) -> do_allowed(child, rest)

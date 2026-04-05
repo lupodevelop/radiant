@@ -1,7 +1,7 @@
+import gleam/dynamic/decode
 import gleam/http
 import gleam/http/request
 import gleam/http/response
-import gleam/dynamic/decode
 import gleam/int
 import gleam/list
 import gleeunit
@@ -808,7 +808,10 @@ pub fn handle_with_test() {
       radiant.ok("got " <> body)
     })
 
-  let req = request.new() |> request.set_method(http.Post) |> request.set_path("/upload")
+  let req =
+    request.new()
+    |> request.set_method(http.Post)
+    |> request.set_path("/upload")
   let body = <<"payload":utf8>>
 
   radiant.handle_with(router, req, body)
@@ -868,9 +871,7 @@ pub fn mount_test() {
 
 pub fn mount_with_middleware_test() {
   let add_header: radiant.Middleware = fn(next) {
-    fn(req) {
-      next(req) |> radiant.with_header("x-sub", "true")
-    }
+    fn(req) { next(req) |> radiant.with_header("x-sub", "true") }
   }
 
   let sub_router =
@@ -1071,7 +1072,8 @@ pub fn serve_static_traversal_test() {
   // Path "/assets/../style.css" -> rel_path "style.css" -> full "pub/style.css"
   // Wait, if it's filtered, it avoids going up.
   // Actually, we want to ensure it doesn't escape.
-  let resp = radiant.handle(router, radiant.test_get("/assets/../../etc/passwd"))
+  let resp =
+    radiant.handle(router, radiant.test_get("/assets/../../etc/passwd"))
   // It should either fall back or serve nothing if is_file fails.
   // In our mock, etc/passwd is False.
   resp.status |> should.equal(404)
@@ -1229,10 +1231,10 @@ pub fn path_for_single_param_test() {
 }
 
 pub fn path_for_multiple_params_test() {
-  radiant.path_for(
-    "/users/<uid:int>/posts/<pid:int>",
-    [#("uid", "1"), #("pid", "99")],
-  )
+  radiant.path_for("/users/<uid:int>/posts/<pid:int>", [
+    #("uid", "1"),
+    #("pid", "99"),
+  ])
   |> should.equal(Ok("/users/1/posts/99"))
 }
 

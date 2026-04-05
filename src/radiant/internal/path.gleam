@@ -40,7 +40,10 @@ pub fn parse(pattern: String) -> List(Segment) {
         "<" <> rest -> parse_bracket_capture(rest, pattern)
         "*" <> name -> {
           case name {
-            "" -> panic as { "Radiant: Wildcard name cannot be empty in pattern: " <> pattern }
+            "" ->
+              panic as {
+                "Radiant: Wildcard name cannot be empty in pattern: " <> pattern
+              }
             _ -> Wildcard(name)
           }
         }
@@ -100,7 +103,10 @@ fn find_duplicate(names: List(String)) -> Result(String, Nil) {
 
 fn parse_capture(content: String, full_pattern: String) -> Segment {
   case content {
-    "" -> panic as { "Radiant: Capture name cannot be empty in pattern: " <> full_pattern }
+    "" ->
+      panic as {
+        "Radiant: Capture name cannot be empty in pattern: " <> full_pattern
+      }
     _ -> Capture(content, StringT)
   }
 }
@@ -112,12 +118,16 @@ fn parse_bracket_capture(rest: String, full_pattern: String) -> Segment {
       case string.split_once(content, ":") {
         Ok(#(name, "int")) -> Capture(name, IntT)
         Ok(#(name, "string")) -> Capture(name, StringT)
-        Ok(#(_, t)) -> panic as { "Radiant: Unsupported type constraint '" <> t <> "' in pattern: " <> full_pattern }
+        Ok(#(_, t)) ->
+          panic as {
+            "Radiant: Unsupported type constraint '"
+            <> t
+            <> "' in pattern: "
+            <> full_pattern
+          }
         Error(Nil) -> parse_capture(content, full_pattern)
       }
     }
     False -> Literal("<" <> rest)
   }
 }
-
-

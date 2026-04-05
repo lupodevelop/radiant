@@ -95,7 +95,12 @@ pub opaque type Param(a) {
 /// })
 /// ```
 pub fn int(name: String) -> Param(Int) {
-  Param(name: name, parse: int.parse, ptype: ipath.IntT, to_string: int.to_string)
+  Param(
+    name: name,
+    parse: int.parse,
+    ptype: ipath.IntT,
+    to_string: int.to_string,
+  )
 }
 
 /// A `Param(String)` that matches any path segment.
@@ -107,7 +112,12 @@ pub fn int(name: String) -> Param(Int) {
 /// })
 /// ```
 pub fn str(name: String) -> Param(String) {
-  Param(name: name, parse: fn(s) { Ok(s) }, ptype: ipath.StringT, to_string: fn(s) { s })
+  Param(
+    name: name,
+    parse: fn(s) { Ok(s) },
+    ptype: ipath.StringT,
+    to_string: fn(s) { s },
+  )
 }
 
 /// Create a typed context key. Pair with `set_context` and `get_context`
