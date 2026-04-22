@@ -6,10 +6,10 @@ import gleam/bit_array
 import gleam/dict.{type Dict}
 import gleam/dynamic
 import gleam/dynamic/decode
+import gleam/float
 import gleam/http.{type Method, Delete, Get, Patch, Post, Put}
 import gleam/http/request.{type Request, Request}
 import gleam/http/response.{type Response, Response}
-import gleam/float
 import gleam/int
 import gleam/json as gjson
 import gleam/list
@@ -1390,8 +1390,7 @@ pub fn internal_server_error_with(body_text: String) -> Response(BitArray) {
 /// // → 404 {"error":"user not found"}
 /// ```
 pub fn json_error(status: Int, message: String) -> Response(BitArray) {
-  let body =
-    gjson.to_string(gjson.object([#("error", gjson.string(message))]))
+  let body = gjson.to_string(gjson.object([#("error", gjson.string(message))]))
   response(status, body)
   |> with_header("content-type", "application/json; charset=utf-8")
 }
