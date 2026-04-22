@@ -9,6 +9,7 @@ import gleam/dynamic/decode
 import gleam/http.{type Method, Delete, Get, Patch, Post, Put}
 import gleam/http/request.{type Request, Request}
 import gleam/http/response.{type Response, Response}
+import gleam/float
 import gleam/int
 import gleam/json as gjson
 import gleam/list
@@ -1232,6 +1233,26 @@ pub fn queries(req: Req) -> List(#(String, String)) {
   }
 }
 
+/// Get a query parameter parsed as Int.
+pub fn query_int(req: Req, key: String) -> Result(Int, Nil) {
+  query(req, key) |> result.try(int.parse)
+}
+
+/// Get a query parameter parsed as Float.
+pub fn query_float(req: Req, key: String) -> Result(Float, Nil) {
+  query(req, key) |> result.try(float.parse)
+}
+
+/// Get a query parameter parsed as Bool.
+/// Accepts `"true"`/`"1"` → `True`, `"false"`/`"0"` → `False`. Anything else returns `Error(Nil)`.
+pub fn query_bool(req: Req, key: String) -> Result(Bool, Nil) {
+  case query(req, key) {
+    Ok("true") | Ok("1") -> Ok(True)
+    Ok("false") | Ok("0") -> Ok(False)
+    _ -> Error(Nil)
+  }
+}
+
 /// Access the underlying `Request(BitArray)` for anything radiant doesn't wrap.
 pub fn original(req: Req) -> Request(BitArray) {
   req.request
@@ -1330,6 +1351,49 @@ pub fn unprocessable_entity() -> Response(BitArray) {
 /// 500 Internal Server Error (empty body).
 pub fn internal_server_error() -> Response(BitArray) {
   response(500, "")
+}
+
+/// 400 Bad Request with a text body.
+pub fn bad_request_with(body_text: String) -> Response(BitArray) {
+  response(400, body_text)
+}
+
+/// 401 Unauthorized with a text body.
+pub fn unauthorized_with(body_text: String) -> Response(BitArray) {
+  response(401, body_text)
+}
+
+/// 403 Forbidden with a text body.
+pub fn forbidden_with(body_text: String) -> Response(BitArray) {
+  response(403, body_text)
+}
+
+/// 404 Not Found with a text body.
+pub fn not_found_with(body_text: String) -> Response(BitArray) {
+  response(404, body_text)
+}
+
+/// 422 Unprocessable Entity with a text body.
+pub fn unprocessable_entity_with(body_text: String) -> Response(BitArray) {
+  response(422, body_text)
+}
+
+/// 500 Internal Server Error with a text body.
+pub fn internal_server_error_with(body_text: String) -> Response(BitArray) {
+  response(500, body_text)
+}
+
+/// JSON error response: `{"error": "message"}` with `application/json` content-type.
+///
+/// ```gleam
+/// radiant.json_error(404, "user not found")
+/// // → 404 {"error":"user not found"}
+/// ```
+pub fn json_error(status: Int, message: String) -> Response(BitArray) {
+  let body =
+    gjson.to_string(gjson.object([#("error", gjson.string(message))]))
+  response(status, body)
+  |> with_header("content-type", "application/json; charset=utf-8")
 }
 
 /// 303 See Other redirect.
