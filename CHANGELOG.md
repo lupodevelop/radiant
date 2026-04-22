@@ -7,6 +7,28 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.0] — 2026-04-22
+
+### Query parameters (typed)
+
+- `query_int(req, key) -> Result(Int, Nil)` — query param parsed as integer.
+- `query_float(req, key) -> Result(Float, Nil)` — query param parsed as float.
+- `query_bool(req, key) -> Result(Bool, Nil)` — `"true"`/`"1"` → `True`, `"false"`/`"0"` → `False`.
+
+### Response helpers with body
+
+- `bad_request_with(body)`, `unauthorized_with(body)`, `forbidden_with(body)` — 4xx with text body.
+- `not_found_with(body)`, `unprocessable_entity_with(body)`, `internal_server_error_with(body)`.
+- `json_error(status, message)` — returns `{"error":"message"}` with `application/json; charset=utf-8`.
+
+### Documentation
+
+- New `docs/` folder: `quickstart.md`, `basic_usage.md`, `routing.md`, `middleware.md`, `testing.md`, `integrations.md`.
+- README rewritten: compact, links to `docs/`, Quick Example uses `get1` (typed) as the recommended default.
+- `ROADMAP.md` added with milestones for v1.5.0 and v2.0.0.
+
+---
+
 ## [1.1.0] — 2026-03-23
 
 - `get4`, `post4`, `put4`, `patch4`, `delete4` — typed route with four path parameters. Handler: `fn(Req, a, b, c, d) -> Response`.
