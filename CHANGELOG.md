@@ -7,6 +7,28 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [2.0.0] — 2026-07-31
+
+- `any` now covers HEAD, OPTIONS, TRACE, CONNECT, and QUERY (RFC 10008).
+- Added `query_method` and `query_route` for explicit QUERY routes.
+- HEAD response bodies are stripped for both fallback and explicit HEAD routes.
+- Reverse-routed path parameters are percent-encoded.
+- CORS only handles actual preflight requests and adds `Vary: Origin`.
+- Text response helpers now set `text/plain; charset=utf-8`.
+- Added `key_named` for namespaced context keys and `wrap` for route-specific middleware.
+- Request accessors and reverse routing now return `RadiantError` variants instead of `Error(Nil)`.
+- Added `route` for custom HTTP methods, including methods not yet exposed by `gleam_http`.
+- Added composable test request builders: `request`, `with_query`, `with_request_header`,
+  `with_request_body`, and `build`.
+- Added `error_message` and `json_error_from` convenience helpers for `RadiantError`.
+- Split the implementation into focused `radiant/*` modules while keeping `import radiant`
+  as the public compatibility facade.
+- Added runnable examples for basic routing, typed routes, middleware, and query handling.
+- Added generated HexDocs pages for the quickstart, routing, errors, middleware, testing,
+  integrations, roadmap, and changelog.
+
+---
+
 ## [1.2.0] — 2026-04-22
 
 ### Query parameters (typed)

@@ -1,13 +1,13 @@
 # Quickstart
 
-## Install
+## 1. Install
 
 ```sh
 gleam add radiant
 gleam add mist gleam_erlang  # for the HTTP server
 ```
 
-## Minimal server
+## 2. Build a router
 
 ```gleam
 import gleam/bytes_tree
@@ -17,12 +17,13 @@ import gleam/int
 import mist
 import radiant
 
+pub const user_path = "/users/<id:int>"
 pub const user_id = radiant.int("id")
 
 pub fn router() -> radiant.Router {
   radiant.new()
   |> radiant.get("/", fn(_req) { radiant.ok("hello") })
-  |> radiant.get1("/users/<id:int>", user_id, fn(_req, id) {
+  |> radiant.get1(user_path, user_id, fn(_req, id) {
     radiant.json("{\"id\":" <> int.to_string(id) <> "}")
   })
 }
@@ -42,8 +43,10 @@ pub fn main() {
 }
 ```
 
+## 3. Start it with Mist
+
 ```sh
-gleam run
+gleam dev
 # → listening on :8080
 
 curl localhost:8080/users/42
@@ -52,6 +55,20 @@ curl localhost:8080/users/42
 curl localhost:8080/users/abc
 # → 404  (non-integer segment doesn't match <id:int>)
 ```
+
+## Runnable examples
+
+The repository includes smaller examples that can be started independently:
+
+```sh
+gleam run --module basic_example
+gleam run --module typed_routes_example
+gleam run --module middleware_example
+gleam run --module query_example
+```
+
+`gleam dev` starts the full `radiant_dev` example. `gleam run --module` selects one of the
+focused examples. Each uses a different port (`4001`–`4004`).
 
 ## Key concepts
 
@@ -73,7 +90,7 @@ radiant.path_for2("/orgs/<org_id:int>/projects/<proj_id:int>", org_id, 7, proj_i
 // → Ok("/orgs/7/projects/3")
 ```
 
-**Middleware** — wrap the router, not individual routes:
+**Middleware** — use `middleware` for cross-cutting concerns:
 
 ```gleam
 radiant.new()
@@ -82,4 +99,7 @@ radiant.new()
 |> radiant.get("/", handler)
 ```
 
-Next: [Basic usage](basic_usage.md) | [Routing reference](routing.md)
+Use `radiant.wrap(middleware, handler)` when only one route needs it.
+
+Next: [Basic usage](basic_usage.md) | [Routing reference](routing.md) |
+[Errors and migration](errors.md)

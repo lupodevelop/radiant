@@ -39,6 +39,15 @@ router
 
 Variants exist for all methods: `get1`–`get6`, `post1`–`post6`, `put1`–`put6`, `patch1`–`patch6`, `delete1`–`delete6`.
 
+For a method without a dedicated helper, use `route`:
+
+```gleam
+router
+|> radiant.route(http.Other("REPORT"), "/reports", report_handler)
+```
+
+Use `any` when the same handler should accept every standard method, including QUERY.
+
 > **Language limit**: Gleam has no variadic generics. `get6` is the maximum arity available.
 > For routes with more than 6 typed params, group them in a custom struct and use `str_param`/`int_param`.
 
@@ -52,7 +61,7 @@ radiant.path_for("/users/<id:int>", [#("id", "42")])
 // → Ok("/users/42")
 
 radiant.path_for("/users/<id:int>", [])
-// → Error(Nil)  — missing param caught at runtime
+// → Error(MissingPathParam("id"))
 
 // Typed — pass the same Param constants used for routing
 radiant.path_for1("/users/<id:int>", user_id, 42)
@@ -95,7 +104,12 @@ Useful for startup logging, contract tests, or API documentation generation.
 correct `Allow` header listing registered methods. No manual handling needed.
 
 **HEAD → GET fallback**: HEAD requests automatically fall through to the registered GET handler
-and strip the response body, per RFC 9110 §9.3.2.
+and strip the response body, per RFC 9110 §9.3.2. Explicit HEAD routes also have their response
+body stripped.
+
+**QUERY**: the `QUERY` method from RFC 10008 is available through
+`radiant.query_route(...)` and `radiant.query_method`. The current `gleam/http` version
+represents it as `Other("QUERY")`.
 
 **Trailing slashes**: `/users` and `/users/` route to the same handler. Radiant filters empty
 segments when splitting paths, so no configuration or redirect is needed.

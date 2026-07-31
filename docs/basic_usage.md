@@ -10,8 +10,20 @@ radiant.new()
 |> radiant.patch("/users/<id:int>", patch_user)
 |> radiant.delete("/users/<id:int>", delete_user)
 |> radiant.options("/users", options_users)  // custom OPTIONS handling
-|> radiant.any("/health", health_handler)    // all methods → same handler
+|> radiant.any("/health", health_handler)    // same handler for every method `any` covers
 ```
+
+`any` includes GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, CONNECT, and
+`QUERY` (RFC 10008). HEAD responses always have an empty body, even when a route is
+registered explicitly for HEAD.
+
+To register only a QUERY route, add it to a router:
+
+```gleam
+radiant.new()
+|> radiant.query_route("/search", search_handler)
+```
+The same routing API is also available from `radiant/router`.
 
 ## Path parameters
 
@@ -41,10 +53,10 @@ radiant.get1("/users/<id:int>", user_id, fn(_req, id) {
 
 ```gleam
 radiant.get("/search", fn(req) {
-  let q     = radiant.query(req, "q")         // Result(String, Nil)
-  let page  = radiant.query_int(req, "page")  // Result(Int, Nil)
-  let sort  = radiant.query_bool(req, "asc")  // Result(Bool, Nil) — "true"/"1" → True
-  let price = radiant.query_float(req, "max") // Result(Float, Nil)
+  let q     = radiant.query(req, "q")         // Result(String, radiant.RadiantError)
+  let page  = radiant.query_int(req, "page")  // Result(Int, radiant.RadiantError)
+  let sort  = radiant.query_bool(req, "asc")  // Result(Bool, radiant.RadiantError)
+  let price = radiant.query_float(req, "max") // Result(Float, radiant.RadiantError)
   let all   = radiant.queries(req)            // List(#(String, String))
   ...
 })
@@ -53,10 +65,10 @@ radiant.get("/search", fn(req) {
 ## Response helpers
 
 ```gleam
-radiant.ok("hello")                   // 200 text/plain
-radiant.json("{\"ok\":true}")         // 200 application/json
-radiant.html("<h1>hi</h1>")           // 200 text/html
-radiant.created("resource created")   // 201
+radiant.ok("hello")                   // 200 text/plain; charset=utf-8
+radiant.json("{\"ok\":true}")         // 200 application/json; charset=utf-8
+radiant.html("<h1>hi</h1>")           // 200 text/html; charset=utf-8
+radiant.created("resource created")   // 201 text/plain; charset=utf-8
 radiant.no_content()                  // 204 empty
 radiant.redirect("/login")            // 303
 
@@ -88,7 +100,7 @@ Pass data from middleware to handlers without `Dynamic`:
 
 ```gleam
 // Define the key as a module-level constant — shared between middleware and handler
-pub const user_key: radiant.Key(User) = radiant.key("auth:user")
+pub const user_key: radiant.Key(User) = radiant.key_named("auth", "user")
 
 // In middleware: store the authenticated user
 fn auth_middleware(next) {
@@ -107,8 +119,9 @@ fn profile_handler(req) {
 }
 ```
 
-> **Key namespacing**: use fully-qualified names (`"auth:user"` not `"user"`) to avoid
-> silent collisions when mixing multiple middleware libraries. See [middleware.md](middleware.md).
+> **Key namespacing**: prefer `radiant.key_named("auth", "user")` over `radiant.key("user")`
+> to avoid silent collisions when mixing multiple middleware libraries. See
+> [middleware.md](middleware.md).
 
 ## Grouping routes
 

@@ -329,7 +329,9 @@ fn captures_allowed(
   })
 }
 
-fn wildcard_methods(wildcard: Option(#(String, Node(handler)))) -> List(Method) {
+fn wildcard_methods(
+  wildcard: Option(#(String, Node(handler))),
+) -> List(Method) {
   case wildcard {
     None -> []
     Some(#(_, child)) -> dict.keys(child.handlers)

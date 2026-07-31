@@ -1,12 +1,22 @@
 name = "radiant"
-version = "1.2.0"
+version = "2.0.0"
 target = "erlang"
 description = "A focused, type-safe HTTP router for Gleam on BEAM — declarative routing, typed path params, middleware, wildcards, reverse routing, and testing helpers."
 licences = ["MIT"]
 repository = { type = "github", user = "lupodevelop", repo = "radiant" }
 
 [documentation]
-pages = []
+pages = [
+  { title = "Quickstart", path = "quickstart.html", source = "docs/quickstart.md" },
+  { title = "Basic usage", path = "basic-usage.html", source = "docs/basic_usage.md" },
+  { title = "Routing", path = "routing.html", source = "docs/routing.md" },
+  { title = "Errors", path = "errors.html", source = "docs/errors.md" },
+  { title = "Middleware", path = "middleware.html", source = "docs/middleware.md" },
+  { title = "Testing", path = "testing.html", source = "docs/testing.md" },
+  { title = "Integrations", path = "integrations.html", source = "docs/integrations.md" },
+  { title = "Roadmap", path = "roadmap.html", source = "ROADMAP.md" },
+  { title = "Changelog", path = "changelog.html", source = "CHANGELOG.md" },
+]
 
 [dependencies]
 gleam_stdlib = ">= 0.50.0 and < 1.0.0"

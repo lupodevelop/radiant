@@ -93,21 +93,21 @@ fn demo_router() -> radiant.Router {
   |> radiant.get("/files/*path", fn(req) {
     case radiant.str_param(req, "path") {
       Ok(path) -> radiant.ok("Requested file: " <> path)
-      Error(Nil) -> radiant.bad_request()
+      Error(_) -> radiant.bad_request()
     }
   })
   // ── Query params ──────────────────────────────────────────────────────────
   |> radiant.get("/search", fn(req) {
     case radiant.query(req, "q") {
       Ok(q) -> radiant.ok("Results for: " <> q)
-      Error(Nil) -> radiant.ok("No query provided")
+      Error(_) -> radiant.ok("No query provided")
     }
   })
   // ── Reverse routing demo ──────────────────────────────────────────────────
   |> radiant.get("/redirect-demo", fn(_req) {
     case radiant.path_for("/users/<id:int>", [#("id", "99")]) {
       Ok(url) -> radiant.redirect(url)
-      Error(Nil) -> radiant.internal_server_error()
+      Error(_) -> radiant.internal_server_error()
     }
   })
   // ── Scope ─────────────────────────────────────────────────────────────────
@@ -118,13 +118,13 @@ fn demo_router() -> radiant.Router {
         Ok(text) ->
           radiant.json("{\"echo\":\"" <> text <> "\"}")
           |> radiant.with_header("x-echoed", "true")
-        Error(Nil) -> radiant.bad_request()
+        Error(_) -> radiant.bad_request()
       }
     })
     // 401 / 403 demo
     |> radiant.get("/secret", fn(req) {
       case radiant.header(req, "authorization") {
-        Error(Nil) -> radiant.unauthorized()
+        Error(_) -> radiant.unauthorized()
         Ok("Bearer admin") -> radiant.json("{\"secret\":\"42\"}")
         Ok(_) -> radiant.forbidden()
       }

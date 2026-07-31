@@ -4,9 +4,16 @@ import gleam/http/request
 import gleam/http/response
 import gleam/int
 import gleam/list
+import gleam/string
 import gleeunit
 import gleeunit/should
 import radiant
+import radiant/context as radiant_context
+import radiant/middleware as radiant_middleware
+import radiant/request as radiant_request
+import radiant/response as radiant_response
+import radiant/router as radiant_router
+import radiant/testing as radiant_testing
 
 pub fn main() {
   gleeunit.main()
@@ -179,7 +186,7 @@ pub fn str_param_test() {
     |> radiant.get("/users/:name", fn(req) {
       case radiant.str_param(req, "name") {
         Ok(name) -> radiant.ok("hi " <> name)
-        Error(Nil) -> radiant.bad_request()
+        Error(_) -> radiant.bad_request()
       }
     })
 
@@ -194,7 +201,7 @@ pub fn int_param_test() {
     |> radiant.get("/users/:id", fn(req) {
       case radiant.int_param(req, "id") {
         Ok(_id) -> radiant.ok("found")
-        Error(Nil) -> radiant.bad_request()
+        Error(_) -> radiant.bad_request()
       }
     })
 
@@ -209,7 +216,7 @@ pub fn int_param_invalid_test() {
     |> radiant.get("/users/:id", fn(req) {
       case radiant.int_param(req, "id") {
         Ok(_id) -> radiant.ok("found")
-        Error(Nil) -> radiant.bad_request()
+        Error(_) -> radiant.bad_request()
       }
     })
 
@@ -238,7 +245,7 @@ pub fn missing_param_test() {
     |> radiant.get("/users/:id", fn(req) {
       case radiant.str_param(req, "nonexistent") {
         Ok(_) -> radiant.ok("found")
-        Error(Nil) -> radiant.bad_request()
+        Error(_) -> radiant.bad_request()
       }
     })
 
@@ -395,7 +402,7 @@ pub fn req_body_test() {
     |> radiant.post("/echo", fn(req) {
       case radiant.text_body(req) {
         Ok(text) -> radiant.ok(text)
-        Error(Nil) -> radiant.bad_request()
+        Error(_) -> radiant.bad_request()
       }
     })
 
@@ -410,7 +417,7 @@ pub fn req_header_test() {
     |> radiant.get("/check", fn(req) {
       case radiant.header(req, "x-token") {
         Ok(v) -> radiant.ok(v)
-        Error(Nil) -> radiant.bad_request()
+        Error(_) -> radiant.bad_request()
       }
     })
 
@@ -446,7 +453,7 @@ pub fn query_param_test() {
     |> radiant.get("/search", fn(req) {
       case radiant.query(req, "q") {
         Ok(q) -> radiant.ok(q)
-        Error(Nil) -> radiant.bad_request()
+        Error(_) -> radiant.bad_request()
       }
     })
 
@@ -477,7 +484,7 @@ pub fn no_query_test() {
     |> radiant.get("/page", fn(req) {
       case radiant.query(req, "missing") {
         Ok(_) -> radiant.ok("found")
-        Error(Nil) -> radiant.ok("none")
+        Error(_) -> radiant.ok("none")
       }
     })
 
@@ -521,7 +528,7 @@ pub fn wildcard_captures_rest_test() {
     |> radiant.get("/static/*path", fn(req) {
       case radiant.str_param(req, "path") {
         Ok(p) -> radiant.ok(p)
-        Error(Nil) -> radiant.bad_request()
+        Error(_) -> radiant.bad_request()
       }
     })
 
@@ -625,7 +632,7 @@ pub fn middleware_can_short_circuit_test() {
     fn(req) {
       case radiant.header(req, "authorization") {
         Ok(_) -> next(req)
-        Error(Nil) -> radiant.response(401, "unauthorized")
+        Error(_) -> radiant.response(401, "unauthorized")
       }
     }
   }
@@ -649,6 +656,27 @@ pub fn middleware_can_short_circuit_test() {
   |> should.equal(200)
 }
 
+pub fn route_specific_middleware_test() {
+  let add_marker: radiant.Middleware = fn(next) {
+    fn(req) { next(req) |> radiant.with_header("x-route-middleware", "true") }
+  }
+
+  let protected = radiant.wrap(add_marker, fn(_) { radiant.ok("protected") })
+
+  let router =
+    radiant.new()
+    |> radiant.get("/protected", protected)
+    |> radiant.get("/public", fn(_) { radiant.ok("public") })
+
+  radiant.handle(router, radiant.test_get("/protected"))
+  |> fn(r) { response.get_header(r, "x-route-middleware") }
+  |> should.equal(Ok("true"))
+
+  radiant.handle(router, radiant.test_get("/public"))
+  |> fn(r) { response.get_header(r, "x-route-middleware") }
+  |> should.be_error()
+}
+
 // ---------------------------------------------------------------------------
 // CORS middleware
 // ---------------------------------------------------------------------------
@@ -662,6 +690,7 @@ pub fn cors_preflight_test() {
   let req =
     radiant.test_request(http.Options, "/api")
     |> request.set_header("origin", "https://example.com")
+    |> request.set_header("access-control-request-method", "GET")
 
   let resp = radiant.handle(router, req)
   resp.status |> should.equal(204)
@@ -669,6 +698,8 @@ pub fn cors_preflight_test() {
   |> should.equal(Ok("https://example.com"))
   response.get_header(resp, "access-control-allow-methods")
   |> should.be_ok()
+  response.get_header(resp, "vary")
+  |> should.equal(Ok("origin"))
 }
 
 pub fn cors_normal_request_test() {
@@ -695,8 +726,19 @@ pub fn cors_no_origin_test() {
 
   let resp = radiant.handle(router, radiant.test_get("/api"))
   resp.status |> should.equal(200)
-  // No origin header sent → allow-origin still set because "*" matches ""
-  // This is fine — the browser won't send cross-origin requests without Origin
+  response.get_header(resp, "access-control-allow-origin")
+  |> should.be_error()
+}
+
+pub fn cors_does_not_intercept_normal_options_test() {
+  let router =
+    radiant.new()
+    |> radiant.middleware(radiant.cors(radiant.default_cors()))
+    |> radiant.options("/api", fn(_) { radiant.ok("options") })
+
+  radiant.handle(router, radiant.test_options("/api"))
+  |> fn(r) { r.body }
+  |> should.equal(<<"options":utf8>>)
 }
 
 // ---------------------------------------------------------------------------
@@ -1166,6 +1208,16 @@ pub fn any_matches_all_methods_test() {
 
   radiant.handle(router, radiant.test_delete("/health")).status
   |> should.equal(200)
+
+  radiant.handle(router, radiant.test_head("/health"))
+  |> fn(r) { r.body }
+  |> should.equal(<<>>)
+
+  radiant.handle(router, radiant.test_options("/health")).status
+  |> should.equal(200)
+
+  radiant.handle(router, radiant.test_request(radiant.query_method, "/health")).status
+  |> should.equal(200)
 }
 
 pub fn any_does_not_shadow_specific_routes_test() {
@@ -1178,6 +1230,44 @@ pub fn any_does_not_shadow_specific_routes_test() {
   radiant.handle(router, radiant.test_get("/ping"))
   |> fn(r) { r.body }
   |> should.equal(<<"any":utf8>>)
+}
+
+pub fn query_route_test() {
+  let router =
+    radiant.new()
+    |> radiant.query_route("/search", fn(_) { radiant.ok("query") })
+
+  radiant.handle(router, radiant.test_request(radiant.query_method, "/search"))
+  |> fn(r) { r.body }
+  |> should.equal(<<"query":utf8>>)
+}
+
+pub fn generic_route_test() {
+  let router =
+    radiant.new()
+    |> radiant.route(http.Other("REPORT"), "/reports", fn(_) {
+      radiant.ok("reported")
+    })
+
+  radiant.handle(router, radiant.test_request(http.Other("REPORT"), "/reports"))
+  |> fn(r) { r.body }
+  |> should.equal(<<"reported":utf8>>)
+}
+
+pub fn composable_test_request_test() {
+  let req =
+    radiant.request(http.Post, "/search")
+    |> radiant.with_query("page", "2")
+    |> radiant.with_query("q", "gleam router")
+    |> radiant.with_request_header("x-test", "true")
+    |> radiant.with_request_body("payload")
+    |> radiant.build()
+
+  request.get_query(req)
+  |> should.equal(Ok([#("q", "gleam router"), #("page", "2")]))
+  request.get_header(req, "x-test")
+  |> should.equal(Ok("true"))
+  req.body |> should.equal(<<"payload":utf8>>)
 }
 
 // ---------------------------------------------------------------------------
@@ -1230,12 +1320,82 @@ pub fn path_for_single_param_test() {
   |> should.equal(Ok("/users/42"))
 }
 
+pub fn path_for_encodes_param_test() {
+  radiant.path_for("/users/:name", [#("name", "Ada Lovelace")])
+  |> should.equal(Ok("/users/Ada%20Lovelace"))
+}
+
+pub fn path_for_encodes_wildcard_segments_test() {
+  radiant.path_for("/files/*path", [#("path", "docs/my file.txt")])
+  |> should.equal(Ok("/files/docs/my%20file.txt"))
+}
+
 pub fn path_for_multiple_params_test() {
   radiant.path_for("/users/<uid:int>/posts/<pid:int>", [
     #("uid", "1"),
     #("pid", "99"),
   ])
   |> should.equal(Ok("/users/1/posts/99"))
+}
+
+pub fn typed_reverse_routing_test() {
+  let user_id = radiant.int("id")
+  let slug = radiant.str("slug")
+
+  radiant.path_for1("/users/<id:int>", user_id, 42)
+  |> should.equal(Ok("/users/42"))
+
+  radiant.path_for2(
+    "/users/<id:int>/posts/<slug:string>",
+    user_id,
+    42,
+    slug,
+    "hello world",
+  )
+  |> should.equal(Ok("/users/42/posts/hello%20world"))
+}
+
+pub fn typed_reverse_routing_missing_param_test() {
+  let p1 = radiant.int("one")
+  let p2 = radiant.int("two")
+  let p3 = radiant.int("three")
+  let p4 = radiant.int("four")
+  let p5 = radiant.int("five")
+  let p6 = radiant.int("six")
+
+  radiant.path_for6(
+    "/<one:int>/<two:int>/<three:int>/<four:int>/<five:int>/<six:int>",
+    p1,
+    1,
+    p2,
+    2,
+    p3,
+    3,
+    p4,
+    4,
+    p5,
+    5,
+    p6,
+    6,
+  )
+  |> should.equal(Ok("/1/2/3/4/5/6"))
+
+  radiant.path_for6(
+    "/<one:int>/<two:int>/<three:int>/<four:int>/<five:int>/<six:int>",
+    p1,
+    1,
+    p2,
+    2,
+    p3,
+    3,
+    p4,
+    4,
+    p5,
+    5,
+    radiant.int("wrong"),
+    6,
+  )
+  |> should.equal(Error(radiant.MissingPathParam("six")))
 }
 
 pub fn path_for_colon_syntax_test() {
@@ -1250,7 +1410,117 @@ pub fn path_for_wildcard_test() {
 
 pub fn path_for_missing_param_test() {
   radiant.path_for("/users/<id:int>", [])
-  |> should.equal(Error(Nil))
+  |> should.equal(Error(radiant.MissingPathParam("id")))
+}
+
+pub fn detailed_query_error_test() {
+  let req = radiant.test_get("/search?page=abc&active=maybe")
+
+  radiant.handle(
+    radiant.new()
+      |> radiant.get("/search", fn(req) {
+        let page_error = radiant.query_int(req, "page")
+        let bool_error = radiant.query_bool(req, "active")
+        radiant.ok(string.inspect(#(page_error, bool_error)))
+      }),
+    req,
+  )
+  |> fn(resp) { resp.body }
+  |> should.equal(<<
+    "#(Error(InvalidIntQuery(\"page\", \"abc\")), Error(InvalidBoolQuery(\"active\", \"maybe\")))":utf8,
+  >>)
+}
+
+pub fn detailed_context_error_test() {
+  let key = radiant.key_named("tests", "missing")
+  let req = radiant.test_get("/")
+
+  radiant.handle(
+    radiant.new()
+      |> radiant.get("/", fn(req) {
+        case radiant.get_context(req, key) {
+          Ok(_) -> radiant.ok("unexpected")
+          Error(error) -> radiant.ok(string.inspect(error))
+        }
+      }),
+    req,
+  )
+  |> fn(resp) { resp.body }
+  |> should.equal(<<"MissingContext(\"tests:missing\")":utf8>>)
+}
+
+pub fn detailed_header_error_test() {
+  let router =
+    radiant.new()
+    |> radiant.get("/", fn(req) {
+      radiant.ok(string.inspect(radiant.header(req, "x-missing")))
+    })
+
+  radiant.handle(router, radiant.test_get("/"))
+  |> fn(resp) { resp.body }
+  |> should.equal(<<"Error(MissingHeader(\"x-missing\"))":utf8>>)
+}
+
+pub fn detailed_body_error_test() {
+  let router =
+    radiant.new()
+    |> radiant.post("/", fn(req) {
+      radiant.ok(string.inspect(radiant.text_body(req)))
+    })
+
+  let req =
+    radiant.test_post("/", "")
+    |> request.set_body(<<255>>)
+
+  radiant.handle(router, req)
+  |> fn(resp) { resp.body }
+  |> should.equal(<<"Error(InvalidUtf8Body)":utf8>>)
+}
+
+pub fn detailed_path_param_errors_test() {
+  let router =
+    radiant.new()
+    |> radiant.get("/users/:id", fn(req) {
+      radiant.ok(
+        string.inspect(#(
+          radiant.str_param(req, "missing"),
+          radiant.int_param(req, "id"),
+        )),
+      )
+    })
+
+  radiant.handle(router, radiant.test_get("/users/not-an-int"))
+  |> fn(resp) { resp.body }
+  |> should.equal(<<
+    "#(Error(MissingPathParam(\"missing\")), Error(InvalidIntParam(\"id\", \"not-an-int\")))":utf8,
+  >>)
+}
+
+pub fn error_response_helpers_test() {
+  let error = radiant.InvalidIntQuery("page", "abc")
+
+  radiant.error_message(error)
+  |> should.equal("query parameter 'page' is not an integer: abc")
+
+  radiant.json_error_from(400, error)
+  |> radiant.should_have_status(400)
+  |> radiant.should_have_header(
+    "content-type",
+    "application/json; charset=utf-8",
+  )
+  |> radiant.should_have_body(
+    "{\"error\":\"query parameter 'page' is not an integer: abc\"}",
+  )
+}
+
+pub fn response_content_type_defaults_test() {
+  radiant.ok("ok")
+  |> response.get_header("content-type")
+  |> should.equal(Ok("text/plain; charset=utf-8"))
+
+  radiant.no_content()
+  |> response.get_header("content-type")
+  |> should.be_error()
 }
 
 pub fn path_for_root_test() {
@@ -1365,4 +1635,30 @@ pub fn get1_post1_same_path_test() {
   radiant.handle(router, radiant.test_post("/items/5", ""))
   |> fn(r) { r.body }
   |> should.equal(<<"post:5":utf8>>)
+}
+
+// ---------------------------------------------------------------------------
+// Public module interoperability
+// ---------------------------------------------------------------------------
+
+pub fn focused_modules_interoperate_with_facade_test() {
+  let user_key: radiant_context.Key(String) =
+    radiant_context.key_named("auth", "user")
+  let item_id = radiant.int("id")
+
+  let router: radiant.Router =
+    radiant_router.new()
+    |> radiant_router.middleware(radiant_middleware.log(fn(_msg) { Nil }))
+    |> radiant_router.middleware(fn(next) {
+      fn(req) { next(radiant_context.set_context(req, user_key, "alice")) }
+    })
+    |> radiant_router.get1("/items/:id", item_id, fn(req, id) {
+      let assert Ok(user) = radiant_context.get_context(req, user_key)
+      let method = radiant_request.method(req) |> http.method_to_string
+      radiant_response.ok(method <> ":" <> user <> ":" <> int.to_string(id))
+    })
+
+  radiant.handle(router, radiant_testing.test_get("/items/42"))
+  |> radiant_testing.should_have_status(200)
+  |> radiant_testing.should_have_body("GET:alice:42")
 }
