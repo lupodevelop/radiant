@@ -1,82 +1,105 @@
-# radiant
+# Radiant
 
 [![Package Version](https://img.shields.io/hexpm/v/radiant)](https://hex.pm/packages/radiant)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/radiant/)
 
-A focused, type-safe HTTP router for Gleam on BEAM.
-
-Built on a **prefix tree** with specificity-based priority, no global state, no macros.
+Radiant is a type-safe HTTP router for Gleam on the BEAM. It gives you structural route
+priority, typed path parameters, reverse routing, composable middleware, and test helpers
+without global state or macros.
 
 ```sh
 gleam add radiant
 ```
 
-## Quick start
+## A first route
 
 ```gleam
 import gleam/int
 import radiant
 
+pub const user_path = "/users/<id:int>"
 pub const user_id = radiant.int("id")
 
 pub fn router() -> radiant.Router {
   radiant.new()
-  |> radiant.get("/", fn(_req) { radiant.ok("hello") })
-  |> radiant.get1("/users/<id:int>", user_id, fn(_req, id) {
+  |> radiant.get("/", fn(_) { radiant.ok("hello") })
+  |> radiant.get1(user_path, user_id, fn(_, id) {
     radiant.json("{\"id\":" <> int.to_string(id) <> "}")
-  })
-  |> radiant.scope("/api/v1", fn(r) {
-    r |> radiant.post("/items", create_item)
   })
 }
 ```
 
-`get1` hands the parsed `Int` directly to the handler — no `let assert`, no `int.parse`.
+`get1` parses the integer before calling the handler. Invalid values do not reach the handler;
+they fall through to the next matching route and eventually return 404.
 
 ## Why Radiant?
 
-Gleam's native routing is `case wisp.path_segments(req)` — great for small apps. Radiant adds:
+Use native pattern matching when an application has a small, fixed route table. Use Radiant when
+the route table is shared across modules or you need these behaviours in one place:
 
-| | Native pattern matching | Radiant |
+| Need | Native matching | Radiant |
 | --- | --- | --- |
-| Type-safe path params | ❌ | ✅ |
-| Specificity-based priority | ❌ | ✅ |
-| 405 Method Not Allowed | manual | ✅ automatic |
-| HEAD support (RFC 9110) | manual | ✅ automatic |
-| Reverse routing | ❌ | ✅ |
-| Route introspection | ❌ | ✅ |
-| Built-in test helpers | ❌ | ✅ |
-| CORS middleware | ❌ | ✅ |
-| Query params (typed) | manual | ✅ |
+| Typed path parameters | Parse in each handler | `get1`–`get6` |
+| Literal/capture priority | Manual ordering | Structural priority |
+| 405 and `Allow` | Manual | Automatic |
+| HEAD semantics | Manual | Automatic |
+| Reverse routing | Manual strings | `path_for1`–`path_for6` |
+| Middleware composition | App-specific | Global `middleware` or handler `wrap` |
+| Route contract tests | App-specific | `routes` and fluent assertions |
 
-## Features
+Radiant complements Mist and Wisp; it does not provide sessions, cookies, CSRF, templates, or
+WebSockets.
 
-- **Prefix tree**: O(1) literal lookup; cost grows with path depth, not route count.
-- **Specificity priority**: `Literal > <id:int> > <name:string> > *wildcard`, regardless of registration order.
-- **Typed routes** (`get1`–`get6`): handlers receive parsed `Int`/`String` values directly.
-- **Type-safe context**: pass data through middlewares via `Key(a)` — no `Dynamic`, no manual decoding.
-- **Automatic 405 + HEAD**: correct `Allow` header and HEAD→GET fallback built in.
-- **Startup validations**: wildcard position, duplicate capture names, and capture ambiguity checked at registration, not at request time.
-- **Swappable static server**: `FileSystem` interface works with `simplifile` or any IO library.
-- **Testing helpers**: synthetic requests and fluent assertions — no running server needed.
+## Choose your integration
+
+- **Mist + Radiant**: the smallest BEAM server stack with Radiant's middleware.
+- **Wisp + Radiant**: keep Wisp's cookies, CSRF, and request lifecycle while using Radiant routing.
+- **Radiant testing helpers**: test the router without starting a server.
+
+Start with [the five-minute quickstart](docs/quickstart.md), then read the
+[basic usage guide](docs/basic_usage.md).
+
+Examples in this repo use `import radiant`. Focused modules are also available under
+`radiant/router`, `radiant/request`, `radiant/context`, `radiant/response`,
+`radiant/middleware`, and `radiant/testing`.
+
+## 2.0 highlights
+
+- `RadiantError` replaces opaque `Error(Nil)` values in the facade's request accessors and
+  reverse routing.
+- `key_named` makes context key namespacing explicit.
+- `wrap` applies middleware to one handler instead of the whole router.
+- `query_route` and `query_method` support QUERY (RFC 10008).
+- `any` covers GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH, TRACE, CONNECT, and QUERY.
+- Composable request builders and `json_error_from` simplify handler and integration tests.
 
 ## Documentation
 
-- [Quickstart](docs/quickstart.md) — first working server in 5 minutes
-- [Basic usage](docs/basic_usage.md) — routing, params, context, response helpers, query params
-- [Routing reference](docs/routing.md) — patterns, priority, scope/mount, reverse routing
-- [Middleware](docs/middleware.md) — built-in middleware and custom middleware patterns
-- [Testing](docs/testing.md) — test helpers and assertions
-- [Integrations](docs/integrations.md) — Mist and Wisp
+- [Quickstart](docs/quickstart.md)
+- [Basic usage](docs/basic_usage.md)
+- [Routing reference](docs/routing.md)
+- [Errors and migration](docs/errors.md)
+- [Middleware](docs/middleware.md)
+- [Testing](docs/testing.md)
+- [Mist and Wisp integrations](docs/integrations.md)
+- [Roadmap](ROADMAP.md)
 
-## Non-goals
-
-Radiant does not provide: template rendering, sessions, cookies, authentication, or WebSockets.
-Use the underlying server (Mist) or a full framework (Wisp) directly for those.
+The `radiant/*` modules contain the focused implementation. The compatibility surface is the
+top-level `radiant` module; application code should continue to import that facade.
 
 ## Development
 
 ```sh
-gleam test    # Run the test suite
-gleam dev     # Start the demo server on :4000
+gleam test
+gleam format --check src test dev
+gleam dev
+```
+
+The repository also includes focused runnable examples:
+
+```sh
+gleam run --module basic_example        # http://localhost:4001
+gleam run --module typed_routes_example # http://localhost:4002
+gleam run --module middleware_example   # http://localhost:4003
+gleam run --module query_example        # http://localhost:4004
 ```

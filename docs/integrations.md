@@ -55,5 +55,5 @@ and don't need Wisp's features (signed cookies, CSRF, session management).
 **Use Wisp + Radiant** when you need Wisp's middleware (especially signed cookies or CSRF) but want
 Radiant's typed routing and testing helpers instead of Wisp's pattern-matching router.
 
-Note: if you're already using Wisp's middleware heavily, the integration surface is narrow. The
-main win from adding Radiant is typed path params and built-in test helpers.
+> **Note**: if you're already using Wisp's middleware heavily, the integration surface is narrow.
+> The main win from adding Radiant is typed path params and built-in test helpers.

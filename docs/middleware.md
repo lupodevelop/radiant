@@ -1,7 +1,7 @@
 # Middleware
 
-Middleware wraps every request that passes through the router. Apply with `radiant.middleware/2`.
-First added = outermost (executes first on the way in, last on the way out).
+Middleware wraps every request that passes through the router with `radiant.middleware/2`,
+or one handler with `radiant.wrap/2`. First added = outermost.
 
 ```gleam
 radiant.new()
@@ -32,7 +32,8 @@ radiant.middleware(radiant.cors(radiant.CorsConfig(
 ```
 
 Handles `OPTIONS` preflight automatically. `Access-Control-Allow-Origin` is only emitted when
-an `Origin` header is present in the request.
+an allowed `Origin` header is present in the request. A normal OPTIONS request is passed to the
+router, and CORS responses include `Vary: Origin`.
 
 ### `log`
 
@@ -55,8 +56,8 @@ radiant.middleware(radiant.rescue(fn(err) {
 }))
 ```
 
-Catches Erlang exceptions (panics, crashes) in handlers and returns a response instead of crashing
-the process. Essential for production BEAM deployments.
+Catches Erlang exceptions (panics, crashes) in handlers and returns a response instead of
+crashing the process.
 
 ### `json_body`
 
@@ -64,7 +65,7 @@ Parse the request body as JSON and store the result in context. Returns 400 if t
 valid JSON or doesn't match the decoder. Skips parsing when the body is empty (GET, HEAD, DELETE).
 
 ```gleam
-pub const payload_key: radiant.Key(CreateUser) = radiant.key("routes:create_user")
+pub const payload_key: radiant.Key(CreateUser) = radiant.key_named("routes", "create_user")
 
 let decoder = {
   use name  <- decode.field("name", decode.string)
@@ -93,8 +94,8 @@ radiant.middleware(radiant.serve_static(prefix: "/assets", from: "priv/static", 
 ```
 
 Strips the prefix, resolves the file path inside the directory, and serves it with MIME detection.
-Falls through to the next handler if the file doesn't exist. The `FileSystem` interface is swappable —
-use any IO library or an in-memory implementation for tests.
+Falls through to the next handler if the file doesn't exist. Use any IO library or an in-memory
+implementation for tests.
 
 ## Custom middleware
 
@@ -113,41 +114,44 @@ fn timing_middleware(next: fn(radiant.Req) -> Response(BitArray)) -> fn(radiant.
 router |> radiant.middleware(timing_middleware)
 ```
 
+### Route-specific middleware
+
+Use `wrap` when only one route needs a middleware:
+
+```gleam
+let create_user =
+  radiant.wrap(
+    radiant.json_body(payload_key, user_decoder),
+    fn(req) {
+      let assert Ok(user) = radiant.get_context(req, payload_key)
+      radiant.created(user.name)
+    },
+  )
+
+router
+|> radiant.post("/users", create_user)
+|> radiant.get("/health", health_handler)
+```
+
+This keeps JSON parsing off unrelated routes and also works well for route-specific
+authentication or authorization.
+
 ## Context key namespacing
 
 `radiant.key("user")` is backed by the string `"user"`. If two middlewares call `key("user")`
 but expect different types, they silently overwrite each other in the context dict.
 
-**Always use fully-qualified key names:**
+**Always use namespaced key names:**
 
 ```gleam
 // Bad — collides with any other "user" key
 pub const user_key = radiant.key("user")
 
 // Good — module-qualified, collision-safe
-pub const user_key     = radiant.key("auth_middleware:user")
-pub const session_key  = radiant.key("session_middleware:session")
-pub const payload_key  = radiant.key("routes:create_user")
+pub const user_key = radiant.key_named("auth_middleware", "user")
+pub const session_key = radiant.key_named("session_middleware", "session")
+pub const payload_key = radiant.key_named("routes", "create_user")
 ```
 
-This is especially important when mixing third-party middleware libraries. Gleam has no macros,
-so there is no compile-time enforcement — the prefix convention is the correct mitigation.
-
-## Route-level middleware (pattern)
-
-Radiant applies middleware globally. For route-level control, use function composition:
-
-```gleam
-fn require_auth(handler: fn(radiant.Req, User) -> Response(BitArray)) {
-  fn(req: radiant.Req) -> Response(BitArray) {
-    case radiant.get_context(req, user_key) {
-      Ok(user) -> handler(req, user)
-      Error(_) -> radiant.unauthorized()
-    }
-  }
-}
-
-router
-|> radiant.middleware(auth_middleware)  // stores user in context
-|> radiant.get1("/profile/<id:int>", user_id, require_auth(profile_handler))
-```
+This matters most when you mix application and third-party middleware. `Key(a)` protects the
+value type, but the runtime identity is still the string name.
